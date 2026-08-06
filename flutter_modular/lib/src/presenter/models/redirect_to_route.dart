@@ -23,6 +23,7 @@ class RedirectRoute extends ChildRoute {
     String? name,
     String? schema,
     void Function(dynamic)? popCallback,
+    ModularArguments? bindedArgs,
     List<Middleware>? middlewares,
     List<ModularRoute>? children,
     String? parent,

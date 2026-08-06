@@ -42,10 +42,23 @@ class ParallelRoute<T> extends ModularRoute {
   @internal
   final void Function(dynamic)? popCallback;
 
+  /// Arguments captured when this route was pushed.
+  ///
+  /// `Modular.args` is a single global value that is overwritten on every
+  /// route match, so reading it inside a [child] builder is only correct
+  /// while the route sits on top of the stack. `NavigatorState.restoreState`
+  /// rebuilds every page of the stack in one synchronous loop, which would
+  /// otherwise hand the top route's arguments to every builder below it.
+  /// Keeping them here lets `ModularPage.createRoute` restore the arguments
+  /// that actually belong to this route.
+  @internal
+  final ModularArguments? bindedArgs;
+
   ParallelRoute({
     this.child,
     required String name,
     this.popCallback,
+    this.bindedArgs,
     this.maintainState = true,
     String parent = '',
     String schema = '',
@@ -137,6 +150,7 @@ class ParallelRoute<T> extends ModularRoute {
     String? name,
     String? schema,
     void Function(dynamic)? popCallback,
+    ModularArguments? bindedArgs,
     List<Middleware>? middlewares,
     List<ModularRoute>? children,
     String? parent,
@@ -154,6 +168,7 @@ class ParallelRoute<T> extends ModularRoute {
       name: name ?? this.name,
       schema: schema ?? this.schema,
       popCallback: popCallback ?? this.popCallback,
+      bindedArgs: bindedArgs ?? this.bindedArgs,
       middlewares: middlewares ?? this.middlewares,
       children: children ?? this.children,
       parent: parent ?? this.parent,

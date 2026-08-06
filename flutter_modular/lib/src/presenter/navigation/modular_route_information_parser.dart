@@ -73,6 +73,11 @@ class ModularRouteInformationParser
     final modularArgs =
         getArguments().getOrElse((l) => ModularArguments.empty());
 
+    /// Bind the arguments to the route itself, so a later rebuild of this
+    /// page does not read whatever `Modular.args` happens to hold at
+    /// that moment. See `ParallelRoute.bindedArgs`.
+    route = route.copyWith(bindedArgs: modularArgs);
+
     if (popCallback != null) {
       route = route.copyWith(popCallback: popCallback);
     }
@@ -88,12 +93,14 @@ class ModularRouteInformationParser
 
       while (parent != '') {
         var child = await selectRoute(parent, arguments: arguments);
+        final childArgs =
+            getArguments().getOrElse((l) => ModularArguments.empty());
         parent = child.parent;
         if (parent == route.parent) {
           parent = '';
           continue;
         }
-        child = child.copyWith(schema: parent);
+        child = child.copyWith(schema: parent, bindedArgs: childArgs);
         book.routes.insert(0, child);
       }
 

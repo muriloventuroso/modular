@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:modular_core/modular_core.dart';
 
+import '../../flutter_modular_module.dart';
 import '../errors/errors.dart';
 import '../models/modular_args.dart';
 import '../models/route.dart';
@@ -11,11 +12,15 @@ class ModularPage<T> extends Page<T> {
   final bool isEmpty;
   final ModularFlags flags;
 
+  /// Arguments that belong to this page, as opposed to whatever
+  /// `Modular.args` holds when [createRoute] happens to run.
+  final ModularArguments args;
+
   ModularPage({
     LocalKey? key,
     required this.route,
     this.isEmpty = false,
-    required ModularArguments args,
+    required this.args,
     required this.flags,
   }) : super(key: key, name: route.uri.toString(), arguments: args.data);
 
@@ -28,11 +33,28 @@ class ModularPage<T> extends Page<T> {
     );
   }
 
+  /// Route builders read `Modular.args`, a single global that the tracker
+  /// overwrites on every route match. `NavigatorState.restoreState` calls
+  /// [createRoute] for every page of the stack in one synchronous loop, so
+  /// without this every builder but the top one would be handed the wrong
+  /// arguments. Bind this page's own arguments for the duration of the
+  /// build, then put the global back where it was.
+  Widget _buildChild(BuildContext context) {
+    final tracker = injector.get<Tracker>();
+    final previous = tracker.arguments;
+    tracker.setArguments(args);
+    try {
+      return route.child!(context);
+    } finally {
+      tracker.setArguments(previous);
+    }
+  }
+
   @override
   Route<T> createRoute(BuildContext context) {
     late final Widget page;
     if (route.child != null) {
-      page = route.child!(context);
+      page = _buildChild(context);
     } else {
       throw ModularPageException('Child not be null');
     }

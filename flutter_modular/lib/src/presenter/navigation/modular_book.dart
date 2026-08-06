@@ -19,7 +19,10 @@ class ModularBook {
       pages.add(ModularPage(
         key: ValueKey('${route.uri}@${route.schema}@$i'),
         route: route,
-        args: Modular.args,
+        // [chapters] runs on every rebuild, so `Modular.args` here is the
+        // args of whichever route was matched last -- correct only for the
+        // top page. Prefer the args captured when the route was pushed.
+        args: route.bindedArgs ?? Modular.args,
         flags: (Modular as ModularBase).flags,
       ));
     }
