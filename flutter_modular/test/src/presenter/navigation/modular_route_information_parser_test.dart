@@ -84,27 +84,30 @@ void main() {
     expect(book.chapters().first.name, '/');
   });
 
-  test('parseRouteInformation calls selectBook with correct arguments',
-      () async {
+  test(
+      'parseRouteInformation does not pass the query as arguments, so a page '
+      'expecting a typed object gets null instead of a Map', () async {
     final routeMock = ParallelRouteMock();
     when(() => routeMock.copyWith(bindedArgs: any(named: 'bindedArgs')))
         .thenReturn(routeMock);
-    final params = {'param': 'value'};
     final uri = Uri.parse('/test');
     when(() => routeMock.uri).thenReturn(uri);
+    when(() => routeMock.name).thenReturn('/test');
     when(() => routeMock.parent).thenReturn('');
     when(() => routeMock.middlewares).thenReturn([]);
     when(() => getRoute.call(any()))
         .thenAnswer((_) async => Success(routeMock));
     when(() => getArguments.call())
-        .thenReturn(Success(ModularArguments(uri: uri, data: params)));
+        .thenReturn(Success(ModularArguments(uri: uri)));
     when(() => reportPush(routeMock)).thenReturn(const Success(unit));
 
     const routeInformation = RouteInformation(location: '/test?param=value');
     final book = await parser.parseRouteInformation(routeInformation);
 
     expect(book.uri.toString(), '/test');
-    expect(parser.getArguments.call().getOrNull()?.data, params);
+    final dto =
+        verify(() => getRoute.call(captureAny())).captured.first as RouteParmsDTO;
+    expect(dto.arguments, isNull);
   });
 
   test('selectBook with parents', () async {

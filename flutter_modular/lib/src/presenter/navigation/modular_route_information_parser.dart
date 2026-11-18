@@ -55,10 +55,10 @@ class ModularRouteInformationParser
       path = location;
     }
 
-    return selectBook(
-      path,
-      arguments: routeInformation.uri.queryParameters,
-    );
+    // No arguments: a route opened from the URL (web refresh, Android route
+    // restoration) would otherwise get the query map as `data` where the page
+    // expects a typed object. Query params stay in `Modular.args.queryParams`.
+    return selectBook(path);
   }
 
   @override
