@@ -128,6 +128,49 @@ void main() {
     expect(delegate.path, '/test');
     expect(delegate.navigateHistory, delegate.currentConfiguration!.routes);
   });
+  group('setNewRoutePath from the Router', () {
+    late ParallelRouteMock list;
+    late ParallelRouteMock detail;
+    late ModularArguments detailArgs;
+    late SetArgumentsMock setArgsMock;
+
+    setUp(() {
+      list = ParallelRouteMock();
+      when(() => list.uri).thenReturn(Uri.parse('/installments/'));
+      detail = ParallelRouteMock();
+      when(() => detail.uri).thenReturn(Uri.parse('/installments/42'));
+      detailArgs = ModularArguments.empty().copyWith(data: 'installment');
+      when(() => detail.bindedArgs).thenReturn(detailArgs);
+      setArgsMock = SetArgumentsMock();
+      when(() => parser.setArguments).thenReturn(setArgsMock);
+      when(() => setArgsMock.call(any())).thenReturn(const Success(unit));
+      delegate.currentConfiguration = ModularBook(routes: [list, detail]);
+    });
+
+    // The Router re-parses its current location on didChangeDependencies;
+    // replacing the stack with it made back exit to the home screen.
+    test('keeps the stack when it re-reports the page already on top',
+        () async {
+      final reparsed = ParallelRouteMock();
+      when(() => reparsed.uri).thenReturn(Uri.parse('/installments/42'));
+
+      await delegate.setNewRoutePath(ModularBook(routes: [reparsed]));
+
+      expect(delegate.currentConfiguration!.routes, [list, detail]);
+      verify(() => setArgsMock.call(detailArgs)).called(1);
+    });
+
+    test('replaces the stack for a different location', () async {
+      final other = ParallelRouteMock();
+      when(() => other.uri).thenReturn(Uri.parse('/orders/7'));
+      when(() => reportPopMock.call(any())).thenReturn(const Success(unit));
+
+      await delegate.setNewRoutePath(ModularBook(routes: [other]));
+
+      expect(delegate.currentConfiguration!.routes, [other]);
+    });
+  });
+
   test('onPopPage', () {
     final route = RouteMock();
     final parallel = ParallelRouteMock();

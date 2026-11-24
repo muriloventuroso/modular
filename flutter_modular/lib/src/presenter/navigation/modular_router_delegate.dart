@@ -60,8 +60,29 @@ class ModularRouterDelegate extends RouterDelegate<ModularBook>
     }
   }
 
+  /// Entry point for route information coming from the [Router]. The Router
+  /// re-parses its current route information on every
+  /// `didChangeDependencies` (e.g. when a route of a navigator above it covers
+  /// it), which hands back the page already on top. Taking that as a new path
+  /// would replace the whole stack with that single page, so back would leave
+  /// the app instead of returning to the previous page.
   @override
   Future<void> setNewRoutePath(ModularBook configuration) async {
+    final current = currentConfiguration;
+    if (current != null &&
+        current.routes.isNotEmpty &&
+        configuration.uri.path == current.uri.path) {
+      // Parsing already overwrote the global args with argument-less ones.
+      final topArgs = current.routes.last.bindedArgs;
+      if (topArgs != null) {
+        parser.setArguments(topArgs);
+      }
+      return;
+    }
+    return _setBook(configuration);
+  }
+
+  Future<void> _setBook(ModularBook configuration) async {
     final disposableRoutes = <ParallelRoute>[];
 
     for (final route
@@ -104,7 +125,7 @@ class ModularRouterDelegate extends RouterDelegate<ModularBook>
     _lastClick = currentTime;
 
     final book = await parser.selectBook(routeName, arguments: arguments);
-    return setNewRoutePath(book);
+    return _setBook(book);
   }
 
   bool onPopPage(Route<dynamic> route, dynamic result) {
@@ -140,7 +161,7 @@ class ModularRouterDelegate extends RouterDelegate<ModularBook>
         ...currentConfiguration!.routes,
         book.routes.last.copyWith(schema: '')
       ]);
-      await setNewRoutePath(book);
+      await _setBook(book);
     } else {
       final list = [...currentConfiguration!.routes];
 
@@ -159,7 +180,7 @@ class ModularRouterDelegate extends RouterDelegate<ModularBook>
         list.add(book.routes.last);
       }
 
-      await setNewRoutePath(book.copyWith(routes: list));
+      await _setBook(book.copyWith(routes: list));
     }
 
     return await popComplete.future;
@@ -181,7 +202,7 @@ class ModularRouterDelegate extends RouterDelegate<ModularBook>
           currentRoutes.lastIndexWhere((element) => element.schema == '');
       currentRoutes[indexLast] = book.routes.first.copyWith(schema: '');
       book = currentConfiguration!.copyWith(routes: [...currentRoutes]);
-      await setNewRoutePath(book);
+      await _setBook(book);
     } else {
       final list = currentRoutes..removeLast();
 
@@ -195,7 +216,7 @@ class ModularRouterDelegate extends RouterDelegate<ModularBook>
           list.add(route);
         }
       }
-      await setNewRoutePath(book.copyWith(routes: list));
+      await _setBook(book.copyWith(routes: list));
     }
 
     return await popComplete.future;
@@ -280,7 +301,7 @@ class ModularRouterDelegate extends RouterDelegate<ModularBook>
       actualRoutes.remove(route);
     }
 
-    await setNewRoutePath(book.copyWith(routes: [
+    await _setBook(book.copyWith(routes: [
       ...actualRoutes,
       ...book.routes,
     ]));
